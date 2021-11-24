@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ナンバータッチ</title>
+<script>
+var numberArray = new Array(25);          //ナンバー
+var currNumber;                           //現在のナンバー
+var timer, startTime;                     //タイマー、スタート時間
+var highScore;                            //ハイスコア
+var checkStorage = false;                 //ストレージ使用可チェック
+
+function init() {
+    //ハイスコアの読み込み
+    try {                                 //ローカルストレージが使える場合
+        hightScore = localStorage.getItem("NT_highScore");  //ローカルストレージからハイスコアを読み込む
+        checkStorage = true;
+    } catch(e) {                          //ローカルストレージが使えない場合
+        highScore = null;
+        checkStorage = false;
+    }
+    if (highScore == null) highScore = "--:--.---";
+    document.getElementById("highScore").innerHTML = highScore; //「最高記録」表示エリアのID
+
+    //ナンバーの初期化
+    for (var i = 0; i < 25; i++) numberArray[i] = i + 1;        //配列numberArray[]に1～25の数値を入れる
+
+    //ナンバーの表示（ボタン無効化）
+    setNumber(true);
+}
+
+function setNumber(disabled) {
+    //ナンバーボタン(5×5)を作成
+    document.getElementById("number").innerHTML = "";       //数字ボタン表示エリアのID
+    for (var i = 0; i < 5; i++) {
+        for (var j = 0; j < 5; j++) {
+            //ボタンを作成
+            var button = document.createElement("button");  //ボタン要素作成
+            button.id = "number_" + numberArray[i*5+j];
+            button.innerHTML = numberArray[i*5+j];
+            button.onclick = touchNumber;                   //ボタンをクリックしたらtouchNumber()関数を実行
+            button.disabled = disabled;
+            document.getElementById("number").appendChild(button);  //ボタンを親要素に追加
+        }
+        //改行（回り込み解除）
+        var clear = document.createElement("div");          //「div」要素を作成
+        document.getElementById("number").appendChild(clear);   //「div」要素を親要素に追加
+    }
+
+}
+
+function shuffleNumber() {
+    //シャッフル
+    for (var i = 24; i >= 0; i--) {     //iが24から0になるまでくり返し
+        var j = Math.floor(Math.random()*i);    //0から1までの乱数
+        var temp = numberArray[i];              //配列の中身を入れ替える
+        numberArray[i] = numberArray[j];
+        numberArray[j] = temp;    
+    }
+
+    //ナンバーの表示（ボタン有効化）
+    setNumber(false);
+}
+
+function touchNumber(e) {       //クリックしたボタン
+    //タッチしたナンバー
+    var targetNumber = e.target.id.split("_")[1];  //ID名を「_」で区切って数字部分を取り出す（＝押したボタンの数字）
+
+    //順番通りタッチしていればＯＫ
+    if (targetNumber - currNumber == 1) {          //currNumber = 最後に押したボタンの数字
+        //ボタンの無効化
+        e.target.disabled = true;
+        //現在のナンバーを更新
+        currNumber = targetNumber;
+    }
+
+    //終了処理
+    if (currNumber == 25) {             //ボタンを25まで押したとき
+       //タイマー停止
+       clearInterval(timer);
+
+       //ハイスコアの表示
+       var score = document.getElementById("score").innerHTML;  //「記録」表示エリアのID
+       var up = highScore;
+       if ((highScore == "--:--.---") || (highScore > score)) { //または
+          //ハイスコア更新
+          highScore = score;
+          up = highScore + " <span>更新!</span>"
+
+          //ローカルストレージにハイスコアを保存
+          if (checkStorage) {               //true:ローカルストレージが使える　false:ローカルストレージが使えない
+              localStorage.setItem("NT_highScore", highScore);
+          }       
+       }
+       document.getElementById("highScore").innerHTML = up;
+
+       //スタートボタンの有効化
+       document.getElementById("startButton").disabled = false; //「スタート」ボタンのID      
+    }
+}
+
+function startNumber() {
+    //スタートボタンの無効化
+    document.getElementById("startButton").disabled = true;
+
+    //ナンバーボタンをシャッフル
+    shuffleNumber();
+    
+    //スタート
+    startTime = new Date();     //日時を表すDateオブジェクトを作成（現在時刻を記憶）
+    currNumber = 0;
+    timer = setInterval(countUp, 50)        //50ミリ秒ごとにcountUp()関数を実行
+}
+
+function countUp() {
+    //経過時間の表示（分：秒．ミリ秒）
+    var time = new Date(new Date() - startTime);    //現在時刻とスタート時刻の差
+    var mm = ("00" + time.getMinutes()).slice(-2);  //「分」を2ケタで表す 右から2文字を取り出す
+    var ss = ("00" + time.getSeconds()).slice(-2);  //「秒」を2ケタで表す
+    var ms = ("000" + time.getMilliseconds()).slice(-3); //「ミリ秒」を3ケタで表す
+    document.getElementById("score").innerHTML = mm + ":" + ss + ":" +ms;
+}
+</script>
+<style>
+button {
+    font-size: 40px;
+    width: 100px;
+    height: 100px;
+    float: left;
+}
+#number div {clear: both;}
+#highScore span {color: #FF0000;}
+</style>
+</head>
+<body onload ="init()">
+<p>ナンバータッチ</p>
+<hr>
+これまでの最高記録：<span id="highScore">--:--.---</span>
+<hr>
+<input type="button" id="startButton" value="スタート" onclick="startNumber()">
+記録：<span id="score">00:00.000</span>
+<hr>
+<div id="number">
+</div>
+</body>
+</html>
